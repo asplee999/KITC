@@ -1,0 +1,19 @@
+{
+  "name": "KITC",
+  "version": "0.0.1",
+  "description": "KITC interface",
+  "repository": "https://github.com/asplee999/KITC.git",
+  "main": "index.js",
+  "scripts": {},
+  "author": "Kino",
+  "engines": {
+    "node": "10.x"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "mongodb": "^3.1.4",
+    "mysql": "^2.16.0",
+    "md5": "^2.2.1",
+    "url-parse": "^1.4.3"
+  }
+}
