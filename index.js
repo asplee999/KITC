@@ -174,8 +174,8 @@ const getPropMapArrayObject = function(arr, keyname){
 	return resMap;
 };
 
-const generateSql = (ieee, map) => {
-	let collects = Object.keys(map).map( (dev) => {
+const generateCollects = (ieee, map) => {
+	return Object.keys(map).map( (dev) => {
 		let tuple = map[dev];
 		let valset = {};
 		Object.keys(tuple).forEach( (attr) => {
@@ -190,7 +190,9 @@ const generateSql = (ieee, map) => {
 
 		return valset;
 	});
+};
 
+const generateSql = (collects) => {
 	let sqlValues = collects.map(tuple => {
 		return "(" + tableCols.map(col => {
 			let name = col.name;
@@ -205,7 +207,6 @@ const generateSql = (ieee, map) => {
 
 	return resCommand;
 };
-
 
 Object.keys(devices).forEach(async (ieee) => {
 	const devIds = devices[ieee];
@@ -233,8 +234,10 @@ Object.keys(devices).forEach(async (ieee) => {
 			resMap[id] = attrLast;
 		});
 
-		let sqlCommand = generateSql(ieee, resMap)
+		let collects = generateCollects(ieee, resMap);
+		let sqlCommand = generateSql(collects);
 		
+		console.log(collects);
 		console.log(sqlCommand);
 		
 	} else console.log(resdata);
