@@ -136,44 +136,108 @@
 // 	}
 // });
 
-const axios = require('axios');
-const md5 = require('md5');
+// about date time
+const datetimeFormat = "YYYY-MM-DD HH:mm:ss";
+const moment = require('moment');
+const executeDatetime = moment().format(datetimeFormat);
+const previousMins = 62;	// to ignore errors if voltage delay
 
-const baseUrl = "http://mngm2.netvoxcloud.com/smarthome/api/";
-const action = "cloud.do";
+// secrets
+const secrets = require('./secrets');
 
-const account = "arnold@soonwell.tw";
-const password = "123456"
+// devices
+const devices = require('./devices');
 
-let axiosIns = axios.create({
-	baseURL: baseUrl,
-	timeout: 5000
-});
+const utils = require('./utils');
 
-const paramToQuery = function(obj){
-	return Object.keys(obj).map(k => {
-		return k + "=" + obj[k];
-	}).join("&");
+const attrMaps = {
+	temperature: "temperature",
+	humidity: "humidity",
+	battery_voltage: "voltage"
 };
 
-async function test(){
-	let params = {
-		data: JSON.stringify(
-			{
-				op: "list_house"
-			}
-		),
-		seq: 194300004,
-		timestamp: new Date().getTime(),
-		user: account
-	};
+const tableCols = [
+	{ name: "ieee", type: "string" },
+	{ name: "device_id", type: "string" },
+	{ name: "time", type: "string" },
+	{ name: "temperature", type: "number" },
+	{ name: "humidity", type: "number" },
+	{ name: "voltage", type: "number" }
+];
 
-	let strToSign = paramToQuery(params) + "&" + password;
+const getPropMapArrayObject = function(arr, keyname){
+	let resMap = {};
+	arr.forEach(item => {
+		if ( !resMap[item[keyname]] ) resMap[item[keyname]] = [];
+		resMap[item[keyname]].push(item);
+	});
+	return resMap;
+};
 
-	let res = await axiosIns.get(action, { params: Object.assign({}, params, { sign: md5(strToSign) }) });
+const generateSql = (ieee, map) => {
+	let collects = Object.keys(map).map( (dev) => {
+		let tuple = map[dev];
+		let valset = {};
+		Object.keys(tuple).forEach( (attr) => {
+			let tableCol = attrMaps[attr];
+			let floatVal = parseFloat(tuple[attr].value);
+			valset[tableCol] = isNaN(floatVal) ? null : floatVal;
+		});
 
-	console.log(res);
-}
+		valset["ieee"] = ieee;
+		valset["device_id"] = dev;
+		valset["time"] = executeDatetime;
 
-test();
+		return valset;
+	});
 
+	let sqlValues = collects.map(tuple => {
+		return "(" + tableCols.map(col => {
+			let name = col.name;
+			let type = col.type;
+			if (type == "string") {
+				return "'" + tuple[name] + "'";
+			} else return tuple[name];
+		}).join(",") + ")";
+	});
+	
+	let resCommand = "INSERT INTO " + secrets.mysql.table + " (" + tableCols.map(c => c.name).join(",") + ") VALUES " + sqlValues.join(",");
+
+	return resCommand;
+};
+
+
+Object.keys(devices).forEach(async (ieee) => {
+	const devIds = devices[ieee];
+
+	let resdata = await utils.requestData({
+		op: "list_attr",
+		house_ieee: ieee,
+		dev_ids: devIds,
+		// attr: "battery_voltage",
+		start_time: moment(executeDatetime).subtract(previousMins, 'm').format(datetimeFormat),
+		end_time: executeDatetime,
+		pagenum: 1,
+		pagesize: 100
+	});	
+
+	if (Array.isArray(resdata.result)) {
+		let resMap = getPropMapArrayObject(resdata.result, 'dev_id');
+
+		Object.keys(resMap).forEach(function(id){
+			let attrRaws = getPropMapArrayObject(resMap[id], 'attr');
+			let attrLast = {};
+			Object.keys(attrRaws).forEach(function(attr){
+				attrLast[attr] = (attrRaws[attr] || []).pop();
+			});
+			resMap[id] = attrLast;
+		});
+
+		let sqlCommand = generateSql(ieee, resMap)
+		
+		console.log(sqlCommand);
+		
+	} else console.log(resdata);
+
+	await utils.sleep(5000);
+});
