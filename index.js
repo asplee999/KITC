@@ -71,11 +71,10 @@ const generateCollects = (ieee, map) => {
 const generateSqlValues = (collects) => {
 	let sqlValues = collects.map(tuple => {
 		return "(" + tableCols.map(col => {
-			let name = col.name;
-			let type = col.type;
-			if (type == "string") {
-				return "'" + tuple[name] + "'";
-			} else return tuple[name];
+			let name = col.name,
+				type = col.type,
+				val = tuple[name];
+			return typeof val == "undefined" ? "null" : (type == "string" ? ("'" + val + "'") : val );
 		}).join(",") + ")";
 	});
 	
