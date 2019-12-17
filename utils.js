@@ -31,8 +31,15 @@ module.exports = {
 			user: account
 		};
 
+		console.log("[Info][requestData] params: " + JSON.stringify(params));
+
 		let strToSign = paramToQuery(params) + "&" + password;
-		let res = await axiosIns.get(action, { params: Object.assign({}, params, { sign: md5(strToSign) }) });
+
+		let finalParams = Object.assign({}, params, { sign: md5(strToSign) });
+
+		console.log("[Info][requestData] params: " + JSON.stringify(finalParams));
+
+		let res = await axiosIns.get(action, { params: finalParams });
 
 		return res.data;
 	},

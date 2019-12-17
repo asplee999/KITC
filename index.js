@@ -90,6 +90,8 @@ async function mainProcess(){
 		while ( ieee = lstDevs.pop() ){
 			const devIds = devices[ieee];
 
+			console.log("[Info][mainProcess] request data by ieee: " + ieee + ", devIds: " + devIds.join(','));
+
 			let resdata = await utils.requestData({
 				op: "list_attr",
 				house_ieee: ieee,
@@ -100,6 +102,8 @@ async function mainProcess(){
 				pagenum: 1,
 				pagesize: 100
 			});	
+
+			console.log("[Info][mainProcess] request origin result: " + JSON.stringify(resdata));
 
 			if (Array.isArray(resdata.result)) {
 				let resMap = getPropMapArrayObject(resdata.result, 'dev_id');
@@ -119,11 +123,13 @@ async function mainProcess(){
 				if ( collects.length ) totalCollects = totalCollects.concat(collects);
 				if ( sqlValues.length ) totalSqlValues = totalSqlValues.concat(sqlValues);
 				
-			} else console.log(resdata.result);
+			} else console.log("[Error][mainProcess] server return: " + resdata.result);
 
 			await utils.sleep(5000);
 		}
 	}();
+
+	console.log("[Info][mainProcess] prepare insert: " + totalSqlValues.join(","));
 
 	// mysql insert
 	if ( totalSqlValues.length ) {
