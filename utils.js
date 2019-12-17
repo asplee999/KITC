@@ -23,6 +23,16 @@ const paramToQuery = function(obj){
 };
 
 module.exports = {
+	getLogger: function(datetime){
+		return {
+			info: function(message){
+				console.log(datetime + " [Info] " + message);
+			},
+			error: function(){
+				console.log(datetime + " [Error] " + message);
+			}
+		};
+	},
 	requestData: async function(options){
 		let params = {
 			data: JSON.stringify(options),

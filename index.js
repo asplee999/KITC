@@ -18,6 +18,7 @@ const mongoConf = secrets.mongo;
 const devices = require('./devices');
 
 const utils = require('./utils');
+const logger = utils.getLogger(executeDatetime);
 
 const mysqlConnection = mysql.createConnection({
 	host     : mysqlConf.host,
@@ -90,7 +91,7 @@ async function mainProcess(){
 		while ( ieee = lstDevs.pop() ){
 			const devIds = devices[ieee];
 
-			console.log("[Info][mainProcess] request data by ieee: " + ieee + ", devIds: " + devIds.join(','));
+			logger.info("request data by ieee: " + ieee + ", devIds: " + devIds.join(','));
 
 			let resdata = await utils.requestData({
 				op: "list_attr",
@@ -103,7 +104,7 @@ async function mainProcess(){
 				pagesize: 100
 			});	
 
-			console.log("[Info][mainProcess] request origin result: " + JSON.stringify(resdata));
+			logger.info("request origin result: " + JSON.stringify(resdata));
 
 			if (Array.isArray(resdata.result)) {
 				let resMap = getPropMapArrayObject(resdata.result, 'dev_id');
@@ -123,13 +124,13 @@ async function mainProcess(){
 				if ( collects.length ) totalCollects = totalCollects.concat(collects);
 				if ( sqlValues.length ) totalSqlValues = totalSqlValues.concat(sqlValues);
 				
-			} else console.log("[Error][mainProcess] server return: " + resdata.result);
+			} else logger.error("server return: " + resdata.result);
 
 			await utils.sleep(5000);
 		}
 	}();
 
-	console.log("[Info][mainProcess] prepare insert: " + totalSqlValues.join(","));
+	logger.info("prepare to insert: " + totalSqlValues.join(","));
 
 	// mysql insert
 	if ( totalSqlValues.length ) {
